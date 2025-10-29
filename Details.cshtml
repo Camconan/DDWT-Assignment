@@ -1,0 +1,44 @@
+@{
+    // Page title
+    ViewBag.Title = "Board Game Details";
+
+    // Open database connection
+    var db = Database.Open("BoardGamesDB");
+
+    // Get the selected game's ID from the query string
+    var id = Request["id"];
+
+    // Retrieve one record matching the given ID
+    var game = db.QuerySingle(@"
+        SELECT bg.BoardGameID, bg.Name, bg.Publisher, bg.YearPublished, bg.ImageUrl,
+               c.CategoryName, f.FamilyName
+        FROM BoardGame bg
+        LEFT JOIN Category c ON bg.CategoryID = c.CategoryID
+        LEFT JOIN Family f ON bg.FamilyID = f.FamilyID
+        WHERE bg.BoardGameID = @0", id);
+}
+
+<main class="container mt-4">
+    @if(game == null){
+        <div class="alert alert-warning text-center">Board game not found.</div>
+    } else {
+        <div class="card shadow-sm">
+            <div class="row g-0">
+                <div class="col-md-4">
+                    <img src="@game.ImageUrl" class="img-fluid rounded-start" alt="Game image"
+                         onerror="this.src='/images/noimage.png';">
+                </div>
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <h3 class="card-title">@game.Name</h3>
+                        <p><strong>Publisher:</strong> @game.Publisher</p>
+                        <p><strong>Year Published:</strong> @game.YearPublished</p>
+                        <p><strong>Category:</strong> @game.CategoryName</p>
+                        <p><strong>Family:</strong> @game.FamilyName</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</main>
+
