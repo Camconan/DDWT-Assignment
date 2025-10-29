@@ -20,6 +20,124 @@
                 LEFT JOIN Category c ON bg.CategoryID = c.CategoryID
                 LEFT JOIN Family f ON bg.FamilyID = f.FamilyID";
 
-    // Build dynamic WHERE clause if search or category filter is used
+  // Build dynamic WHERE clause if search or category filter is used
     var args = new List<object>();
     var conditions = new List<string>();
+
+    if(!String.IsNullOrWhiteSpace(search)){
+        conditions.Add("bg.Name LIKE @0");
+        args.Add("%" + search + "%");
+    }
+
+    if(!String.IsNullOrWhiteSpace(selectedCat)){
+        conditions.Add("c.CategoryID = @" + args.Count);
+        args.Add(selectedCat);
+    }
+
+    if(conditions.Count > 0)
+        sql += " WHERE " + String.Join(" AND ", conditions);
+
+    sql += " ORDER BY bg.Name";
+
+    // Execute the SQL query with any parameters
+    var games = db.Query(sql, args.ToArray());
+}
+
+<main class="container mt-4">
+    <h1 class="text-center mb-4 text-primary">Board Game Library</h1>
+
+    <!-- Search and Category Filter -->
+    <form class="row g-2 mb-3">
+        <!-- Search by name -->
+        <div class="col-md-5">
+            <input type="text" name="q" value="@search" class="form-control"
+                   placeholder="Search by board game name" />
+        </div>
+
+        <!-- Category dropdown -->
+        <div class="col-md-4">
+            <select name="cat" class="form-select">
+                <option value="">All Categories</option>
+                @foreach(var c in categories){
+                    <option value="@c.CategoryID" @(c.CategoryID.ToString()==selectedCat ? "selected" : null)>
+                        @c.CategoryName
+                    </option>
+                }
+            </select>
+        </div>
+
+        <!-- Search and Reset buttons -->
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Search</button>
+            <a href="~/Home/Index" class="btn btn-outline-secondary flex-fill">Reset</a>
+        </div>
+    </form>
+
+    <!-- Toggle between Table and Card View -->
+    <div class="d-flex justify-content-end mb-3">
+        <div class="btn-group">
+            <a href="?q=@search&cat=@selectedCat&view=table" 
+               class="btn btn-outline-dark @(viewMode=="table"?"active":"")">Table</a>
+            <a href="?q=@search&cat=@selectedCat&view=card" 
+               class="btn btn-outline-dark @(viewMode=="card"?"active":"")">Cards</a>
+        </div>
+    </div>
+
+    <!-- Display board game results -->
+    @if(!games.Any()){
+        <div class="alert alert-warning text-center">No board games found.</div>
+    }
+    else if(viewMode == "table"){
+        <!-- Table layout for displaying results -->
+        <table class="table table-striped table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Publisher</th>
+                    <th>Year</th>
+                    <th>Category</th>
+                    <th>Family</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(var g in games){
+                    <tr>
+                        <td>@g.Name</td>
+                        <td>@g.Publisher</td>
+                        <td>@g.YearPublished</td>
+                        <td>@g.CategoryName</td>
+                        <td>@g.FamilyName</td>
+                        <td>
+                            <a href="~/Home/Details?id=@g.BoardGameID" 
+                               class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else {
+        <!-- Card layout for displaying results -->
+        <div class="row row-cols-1 row-cols-md-3 g-3">
+            @foreach(var g in games){
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        <!-- Board game image with fallback -->
+                        <img src="@g.ImageUrl" class="card-img-top" alt="Board game image"
+                             onerror="this.src='/images/noimage.png';">
+                        <div class="card-body">
+                            <h5 class="card-title">@g.Name</h5>
+                            <p class="card-text"><strong>Publisher:</strong> @g.Publisher</p>
+                            <p class="card-text"><strong>Category:</strong> @g.CategoryName</p>
+                            <p class="card-text"><strong>Family:</strong> @g.FamilyName</p>
+                        </div>
+                        <div class="card-footer text-center">
+                            <a href="~/Home/Details?id=@g.BoardGameID" class="btn btn-sm btn-primary">Details</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</main>
