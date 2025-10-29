@@ -1,0 +1,25 @@
+@{
+    // Page title
+    ViewBag.Title = "Board Game Library";
+
+    // Open connection to the BoardGamesDB database
+    var db = Database.Open("BoardGamesDB");
+
+    // Get search input, category selection, and chosen view type from the query string
+    var search = Request["q"] ?? "";
+    var selectedCat = Request["cat"] ?? "";
+    var viewMode = (Request["view"] ?? "table").ToLower();
+
+    // Load all categories for the category dropdown
+    var categories = db.Query("SELECT CategoryID, CategoryName FROM Category ORDER BY CategoryName");
+
+    // Base SQL query to load board game data with category and family information
+    var sql = @"SELECT bg.BoardGameID, bg.Name, bg.Publisher, bg.YearPublished, bg.ImageUrl,
+                       c.CategoryName, f.FamilyName
+                FROM BoardGame bg
+                LEFT JOIN Category c ON bg.CategoryID = c.CategoryID
+                LEFT JOIN Family f ON bg.FamilyID = f.FamilyID";
+
+    // Build dynamic WHERE clause if search or category filter is used
+    var args = new List<object>();
+    var conditions = new List<string>();
